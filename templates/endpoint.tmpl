@@ -1,0 +1,68 @@
+{
+  "endpoint": "{{ .Endpoint }}",
+  "method": "{{ .Method }}",
+  "output_encoding": "json",
+  "timeout": "2s",
+  "extra_config": {
+    "qos/ratelimit/router": {
+      "max_rate": 100,
+      "client_max_rate": 10,
+      "strategy": "ip"
+    },
+    "auth/validator": {
+      "alg": "RS256",
+      "audience": ["https://your-api.com"],
+      "issuer": "https://your-auth-server.com",
+      "jwk_url": "https://your-auth-server.com/.well-known/jwks.json",
+      "disable_jwk_security": false,
+      "cache": true,
+      "operation_debug": false
+    },
+    "qos/http-cache": {
+      "shared": true,
+      "timeout": "10s"
+    },
+    "telemetry/logging": {
+      "level": "DEBUG",
+      "prefix": "[ENDPOINT: {{ .Endpoint }}]",
+      "syslog": false,
+      "stdout": true
+    },
+    "modifier/martian": {
+      "header.Modifier": {
+        "scope": ["request", "response"],
+        "name": "X-Krakend",
+        "value": "true"
+      }
+    },
+    "security/cors": {
+      "allow_origins": ["*"],
+      "allow_methods": ["GET", "POST", "PUT", "DELETE"],
+      "allow_headers": ["Origin", "Authorization", "Content-Type"],
+      "expose_headers": ["Content-Length"],
+      "max_age": "12h"
+    },
+    "telemetry/metrics": {
+      "collection_time": "60s",
+      "listen_address": ":8090"
+    }
+  },
+  "input_headers": ["Authorization", "Content-Type"],
+  "output_headers": ["Content-Type", "X-Krakend", "X-Custom-Header"],
+  "backend": [
+    {
+      "url_pattern": "{{ .Backend }}",
+      "encoding": "json",
+      "method": "{{ .Method }}",
+      "host": ["{{ .Host }}"],
+      "extra_config": {
+        "qos/circuit-breaker": {
+          "interval": 60,
+          "timeout": 10,
+          "max_errors": 1,
+          "log_status_change": true
+        }
+      }
+    }
+  ]
+}
